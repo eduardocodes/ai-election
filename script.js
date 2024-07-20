@@ -25,8 +25,6 @@ function printFormatted(type, content) {
         console.log(`\nRéplica de ${content.candidate}: ${content.rebuttal}`);
     } else if (type === "moderator") {
         console.log(`\nModerador (Gemini): ${content}\n`);
-    } else if (type === "debug") {
-        console.log(`[DEBUG]: ${content}`);
     }
 }
 
@@ -57,7 +55,9 @@ async function askGroq(prompt, model) {
             messages: [{ role: "user", content: prompt }],
             model: model,
         });
-        return response.choices[0]?.message?.content || "";
+        const content = response.choices[0]?.message?.content || "";
+        console.log(`Groq response content: ${content}`);
+        return content;
     } catch (error) {
         console.error(
             `Error asking Groq: ${
@@ -175,6 +175,15 @@ async function evaluateResponses(responses) {
 }
 
 async function evaluate(response, criterion) {
+    const extractScore = (text) => {
+        const regex = /(\d+(\.\d+)?)(\/10)?/;
+        const match = text.match(regex);
+        if (match) {
+            return parseFloat(match[1]);
+        }
+        return 0;
+    };
+
     let llamaScore = await askGroq(
         `Critério: ${criterion}. Avalie esta resposta: ${response.response}`,
         "llama3-8b-8192"
@@ -187,17 +196,22 @@ async function evaluate(response, criterion) {
         `Critério: ${criterion}. Avalie esta resposta: ${response.response}`,
         "mixtral-8x7b-32768"
     );
+
+    let llamaScoreValue = extractScore(llamaScore);
+    let geminiScoreValue = extractScore(geminiScore);
+    let mixtralScoreValue = extractScore(mixtralScore);
+
     let averageScore =
-        (parseFloat(llamaScore) +
-            parseFloat(geminiScore) +
-            parseFloat(mixtralScore)) /
-        3;
+        (llamaScoreValue + geminiScoreValue + mixtralScoreValue) / 3;
     return averageScore;
 }
 
 function compileVotes(scores) {
     let total4oMini = scores["ChatGPT 4o Mini"].reduce((a, b) => a + b, 0);
     let total35 = scores["ChatGPT 3.5"].reduce((a, b) => a + b, 0);
+
+    console.log(`Total ChatGPT 4o Mini: ${total4oMini}`);
+    console.log(`Total ChatGPT 3.5: ${total35}`);
 
     if (total4oMini > total35) {
         console.log("O vencedor é ChatGPT 4o Mini!");
