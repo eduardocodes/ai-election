@@ -1,6 +1,6 @@
 # AI Election
 
-Vídeo: https://youtu.be/ZxUUIrjDacc
+Vídeo: https://youtu.be/oIodq9inhcw
 
 ### Sobre
 
